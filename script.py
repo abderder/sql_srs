@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import duckdb
-from rich.jupyter import display
 
 st.write("Hello world!")
 
