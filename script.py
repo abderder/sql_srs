@@ -43,8 +43,8 @@ with st.sidebar:
     )
     st.write('You selected:', option)
 
+st.markdown("Récupère le nom des plats et leur prix en utilisant une jointure entre les tables `food` et `price`")
 
-st.write("enter your code:")
 sql_query = st.text_area(label="Entrez votre requete: ")
 try:
     sql_table = duckdb.query(sql_query).df()
