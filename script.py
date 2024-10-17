@@ -48,7 +48,9 @@ st.write("enter your code:")
 sql_query = st.text_area(label="Entrez votre requete: ")
 sql_table = duckdb.query(sql_query).df()
 st.dataframe(sql_table)
-if sql_table.equals(data_result):
+sql_table_sorted = sql_table.sort_index(axis=1).sort_values(by=list(sql_table.columns)).reset_index(drop=True)
+data_result_sorted = data_result.sort_index(axis=1).sort_values(by=list(data_result.columns)).reset_index(drop=True)
+if sql_table_sorted.equals(data_result_sorted):
     st.success("Correct ! La réponse est bien.")
 else:
     st.error("C'est Faux.")
