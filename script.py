@@ -21,15 +21,17 @@ Spaced Repetition System SQL parctice
 #
 # """
 # data_result = duckdb.query(SQL_RESULT).df()
-# with st.sidebar:
-#     option = st.selectbox(
-#         "what would you like to revise?",
-#         ["JOIN", "GROUP BY", "WINDOWS FUNCTIONS"],
-#         index=0,
-#         placeholder="Select a theme...",
-#     )
-#     st.write("You selected:", option)
-#
+with st.sidebar:
+    theme = st.selectbox(
+        "what would you like to revise?",
+        ["CROSS JOIN", "GROUP BY", "WINDOW FUNCTION"],
+        index=0,
+        placeholder="Select a theme...",
+    )
+    st.write("You selected:", theme)
+    exercise = con.execute(f"SELECT * FROM memory_state where theme like '{theme}'").df()
+    st.dataframe(exercise)
+#   st.
 # st.markdown(
 #     "Récupère le nom des plats et leur prix en utilisant "
 #     "une jointure entre les tables `food` et `price`"
