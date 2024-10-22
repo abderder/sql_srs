@@ -113,3 +113,5 @@ student_id,student_name,class
 """
 grades = pd.read_csv(StringIO(DATA_GRADES))
 con.execute("CREATE TABLE IF NOT EXISTS grades as SELECT * FROM grades")
+
+con.close()
