@@ -1,2 +1,2 @@
 select * from food
-inner join prince using(food_id)
+inner join price using(food_id)
