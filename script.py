@@ -1,9 +1,11 @@
 # pylint: disable=(missing-module-docstring)
 
-
+import ast
 import streamlit as st
 
 import duckdb
+from click import option
+from duckdb.duckdb import query
 
 con = duckdb.connect(database="data/exercises_sql_tables.duckdb", read_only=False)
 
@@ -13,31 +15,75 @@ SQL SRS
 Spaced Repetition System SQL parctice
 """
 )
-
-# SQL_RESULT = """
-# SELECT f.food_id, f.food_name, p.price
-# FROM food f
-# INNER JOIN price p ON f.food_id = p.food_id
-#
-# """
-# data_result = duckdb.query(SQL_RESULT).df()
+options = ["CROSS JOIN", "WINDOW FUNCTION"]
 with st.sidebar:
     theme = st.selectbox(
         "what would you like to revise?",
-        ["CROSS JOIN", "GROUP BY", "WINDOW FUNCTION"],
-        index=0,
+        options,
+        index=None,
         placeholder="Select a theme...",
     )
     st.write("You selected:", theme)
     exercise = con.execute(f"SELECT * FROM memory_state where theme like '{theme}'").df()
     st.dataframe(exercise)
-#   st.
+    exercise_tables = exercise.loc[0, 'tables']
+    for table in exercise_tables:
+        st.write(f"table: {table}")
+        df_table = con.execute(f"SELECT * FROM '{table}'").df()
+        st.dataframe(df_table)
+
 # st.markdown(
 #     "Récupère le nom des plats et leur prix en utilisant "
 #     "une jointure entre les tables `food` et `price`"
 # )
-#
-# sql_query = st.text_area(label="Entrez votre requete: ")
+
+sql_query = st.text_area(label="Entrez votre requete: ")
+
+tab2, tab3 = st.tabs(["Tables","Solution"])
+
+with tab2:
+    if sql_query:
+        st.write("Votre table:")
+        user_answer_table = con.execute(sql_query).df()
+        st.dataframe(user_answer_table)
+with tab3:
+    solution = exercise.loc[0, 'exercises_name']
+    file_name = "answers/" + solution + "_solution.sql"
+    with open(file_name, "r") as f:
+        sql_solution = f.read()
+    st.code(sql_solution, language="sql")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # try:
 #     sql_table = duckdb.query(sql_query).df()
 #     st.dataframe(sql_table)
