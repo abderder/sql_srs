@@ -20,7 +20,8 @@ SQL SRS
 Spaced Repetition System SQL parctice
 """
 )
-options = ["CROSS JOIN", "WINDOW FUNCTION", "GROUP BY"]
+options_df = con.execute("select distinct theme from memory_state order by theme").df()
+options = options_df["theme"].unique()
 with st.sidebar:
     theme = st.selectbox(
         "what would you like to revise?",
@@ -37,8 +38,8 @@ with st.sidebar:
         .sort_values("last_reviewed")
         .reset_index(drop=True)
     )
-    st.dataframe(exercise)
-    try:
+    if theme:
+        st.dataframe(exercise)
         exercise_tables = exercise.loc[0, "tables"]
         for table in exercise_tables:
             st.write(f"table: {table}")
@@ -49,8 +50,17 @@ with st.sidebar:
         with open(file_name, "r") as f:
             sql_solution = f.read()
         answer_table = con.execute(sql_solution).df()
-    except Exception as e:
-        print()
+    else:
+        exercise_df = con.execute(
+            f"SELECT * FROM memory_state"
+        ).df()
+        exercise = (
+            exercise_df.explode(["exercises_name", "tables", "last_reviewed"])
+            .sort_values("last_reviewed")
+            .reset_index(drop=True)
+        )
+        st.dataframe(exercise)
+
 
 
 sql_query = st.text_area(label="Entrez votre requete: ")
