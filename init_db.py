@@ -11,10 +11,18 @@ con = duckdb.connect(database="data/exercises_sql_tables.duckdb", read_only=Fals
 # LISTES EXERCICES
 # -------------------------------------
 data = {
-    "theme": ["CROSS JOIN", "WINDOW FUNCTION"],
-    "exercises_name":["food_and_price","electronic_sales"],
-    "tables":[["food","price"],["sales"]],
-    "last_reviewed":["1970-01-01","1970-01-01"]
+    "theme": ["CROSS JOIN", "WINDOW FUNCTION", "GROUP BY"],
+    "exercises_name": [
+        ["food_and_price"],
+        ["electronic_sales"],
+        ["orders_customers", "students_grades"],
+    ],
+    "tables": [
+        [["food", "price"]],
+        [["sales"]],
+        [["orders", "customers"], ["students", "grades"]],
+    ],
+    "last_reviewed": [["1970-01-01"], ["1980-01-01"], ["1975-01-01", "1975-01-01"]],
 }
 memory_state = pd.DataFrame(data)
 con.execute("CREATE TABLE IF NOT EXISTS memory_state as SELECT * FROM memory_state")
@@ -55,3 +63,53 @@ id,product,category,quantity,price,sales_date
 """
 sales = pd.read_csv(StringIO(DATA_SALES))
 con.execute("CREATE TABLE IF NOT EXISTS sales as SELECT * FROM sales")
+
+
+DATA_ORDERS = """
+order_id,customer_id,order_date,total_amount
+1,101,2024-01-10,250.50
+2,102,2024-01-11,125.00
+3,103,2024-01-12,300.75
+4,101,2024-01-13,80.20
+5,104,2024-01-14,200.00
+6,102,2024-01-15,150.00
+7,103,2024-01-16,400.00
+8,101,2024-01-17,90.50
+9,104,2024-01-18,120.00
+10,102,2024-01-19,300.00
+"""
+orders = pd.read_csv(StringIO(DATA_ORDERS))
+con.execute("CREATE TABLE IF NOT EXISTS orders as SELECT * FROM orders")
+
+DATA_CUSTOMERS = """
+customer_id,customer_name,country
+101,John Doe,USA
+102,Jane Smith,Canada
+103,Michael Johnson,UK
+104,Sarah Connor,France
+"""
+customers = pd.read_csv(StringIO(DATA_CUSTOMERS))
+con.execute("CREATE TABLE IF NOT EXISTS customers as SELECT * FROM customers")
+
+
+DATA_STUDENTS = """
+student_id,student_name,class
+1,John Doe,Maths
+2,Jane Smith,Science
+3,Michael Johnson,History
+4,Sarah Connor,Maths
+5,Lisa Brown,Science
+"""
+students = pd.read_csv(StringIO(DATA_STUDENTS))
+con.execute("CREATE TABLE IF NOT EXISTS students as SELECT * FROM students")
+
+DATA_GRADES = """
+student_id,student_name,class
+1,John Doe,Maths
+2,Jane Smith,Science
+3,Michael Johnson,History
+4,Sarah Connor,Maths
+5,Lisa Brown,Science
+"""
+grades = pd.read_csv(StringIO(DATA_GRADES))
+con.execute("CREATE TABLE IF NOT EXISTS grades as SELECT * FROM grades")

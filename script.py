@@ -1,11 +1,8 @@
 # pylint: disable=(missing-module-docstring)
 
-import ast
+import duckdb
 import streamlit as st
 
-import duckdb
-from click import option
-from duckdb.duckdb import query
 
 con = duckdb.connect(database="data/exercises_sql_tables.duckdb", read_only=False)
 
@@ -15,7 +12,7 @@ SQL SRS
 Spaced Repetition System SQL parctice
 """
 )
-options = ["CROSS JOIN", "WINDOW FUNCTION"]
+options = ["CROSS JOIN", "WINDOW FUNCTION", "GROUP BY"]
 with st.sidebar:
     theme = st.selectbox(
         "what would you like to revise?",
@@ -24,35 +21,44 @@ with st.sidebar:
         placeholder="Select a theme...",
     )
     st.write("You selected:", theme)
-    exercise = con.execute(f"SELECT * FROM memory_state where theme like '{theme}'").df()
+    exercise_df = con.execute(
+        f"SELECT * FROM memory_state where theme like '{theme}'"
+    ).df()
+    exercise = (
+        exercise_df.explode(["exercises_name", "tables", "last_reviewed"])
+        .sort_values("last_reviewed")
+        .reset_index(drop=True)
+    )
     st.dataframe(exercise)
-    exercise_tables = exercise.loc[0, 'tables']
-    for table in exercise_tables:
-        st.write(f"table: {table}")
-        df_table = con.execute(f"SELECT * FROM '{table}'").df()
-        st.dataframe(df_table)
+    try:
+        exercise_tables = exercise.loc[0, "tables"]
+        for table in exercise_tables:
+            st.write(f"table: {table}")
+            df_table = con.execute(f"SELECT * FROM '{table}'").df()
+            st.dataframe(df_table)
+        solution = exercise.loc[0, "exercises_name"]
+        file_name = "answers/" + solution + "_solution.sql"
+        with open(file_name, "r") as f:
+            sql_solution = f.read()
+        answer_table = con.execute(sql_solution).df()
+    except Exception as e:
+        print()
 
-
-solution = exercise.loc[0, 'exercises_name']
-file_name = "answers/" + solution + "_solution.sql"
-with open(file_name, "r") as f:
-    sql_solution = f.read()
-answer_table = con.execute(sql_solution).df()
 
 sql_query = st.text_area(label="Entrez votre requete: ")
 
-tab2, tab3 = st.tabs(["Tables","Solution"])
+tab2, tab3 = st.tabs(["Table", "Solution"])
 
 with tab2:
-    #Utilisateur réponse
+    # Utilisateur réponse
     if sql_query:
         st.write("Votre table:")
         try:
             user_answer_table = con.execute(sql_query).df()
             st.dataframe(user_answer_table)
         except Exception as e:
-            error_message = str(e)
-            st.error(error_message)
+            ERROR_MESSAGE = str(e)
+            st.error(ERROR_MESSAGE)
         try:
             user_answer_table_sorted = (
                 user_answer_table.sort_index(axis=1)
@@ -71,36 +77,13 @@ with tab2:
         except Exception as e:
             st.error("Please enter a SQL query.")
 with tab3:
-    st.code(sql_solution, language="sql")
-
-
-
-
-
-
-
-
-
-
+    try:
+        st.code(sql_solution, language="sql")
+    except Exception as e:
+        print()
 
 
 # st.markdown(
 #     "Récupère le nom des plats et leur prix en utilisant "
 #     "une jointure entre les tables `food` et `price`"
 # )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
