@@ -1,71 +1,107 @@
-import streamlit as st
-import pandas as pd
+# pylint: disable=(missing-module-docstring)
+import logging
+import os
 import duckdb
-from io import StringIO
-data_food = """food_id,food_name
-1,Pizza
-2,Burger
-3,Sushi
-4,Pasta
-5,Salad
-"""
+import streamlit as st
 
-# Données Price en format CSV
-data_price = """food_id,price
-1,8.99
-2,5.49
-3,12.99
-4,7.50
-6,4.99
-"""
+if "data" not in os.listdir():
+    logging.error(os.listdir())
+    logging.error("creating folder data")
+    os.mkdir("data")
 
-food = pd.read_csv(StringIO(data_food))
-price = pd.read_csv(StringIO(data_price))
+if "exercises_sql_tables.duckdb" not in os.listdir("data"):
+    exec(open("init_db.py").read())
 
-st.title("""
+con = duckdb.connect(database="data/exercises_sql_tables.duckdb", read_only=False)
+
+st.title(
+    """
 SQL SRS
 Spaced Repetition System SQL parctice
-""")
-sql_result = """
-        SELECT f.food_id, f.food_name, p.price
-        FROM food f
-        INNER JOIN price p ON f.food_id = p.food_id
-
 """
-data_result = duckdb.query(sql_result).df()
+)
+options_df = con.execute("select distinct theme from memory_state order by theme").df()
+options = options_df["theme"].unique()
 with st.sidebar:
-    option = st.selectbox(
+    theme = st.selectbox(
         "what would you like to revise?",
-        ["JOIN","GROUP BY","WINDOWS FUNCTIONS"],
-        index =0,
-        placeholder="Select a theme..."
-
+        options,
+        index=None,
+        placeholder="Select a theme...",
     )
-    st.write('You selected:', option)
+    st.write("You selected:", theme)
+    exercise_df = con.execute(
+        f"SELECT * FROM memory_state where theme like '{theme}'"
+    ).df()
+    exercise = (
+        exercise_df.explode(["exercises_name", "tables", "last_reviewed"])
+        .sort_values("last_reviewed")
+        .reset_index(drop=True)
+    )
+    if theme:
+        st.dataframe(exercise)
+        exercise_tables = exercise.loc[0, "tables"]
+        for table in exercise_tables:
+            st.write(f"table: {table}")
+            df_table = con.execute(f"SELECT * FROM '{table}'").df()
+            st.dataframe(df_table)
+        solution = exercise.loc[0, "exercises_name"]
+        file_name = "answers/" + solution + "_solution.sql"
+        with open(file_name, "r") as f:
+            sql_solution = f.read()
+        answer_table = con.execute(sql_solution).df()
+    else:
+        exercise_df = con.execute(
+            f"SELECT * FROM memory_state"
+        ).df()
+        exercise = (
+            exercise_df.explode(["exercises_name", "tables", "last_reviewed"])
+            .sort_values("last_reviewed")
+            .reset_index(drop=True)
+        )
+        st.dataframe(exercise)
 
 
-st.write("enter your code:")
+
 sql_query = st.text_area(label="Entrez votre requete: ")
-sql_table = duckdb.query(sql_query).df()
-st.dataframe(sql_table)
-if sql_table.equals(data_result):
-    st.success("Correct ! La réponse est bien.")
-else:
-    st.error("C'est Faux.")
 
+tab2, tab3 = st.tabs(["Table", "Solution"])
 
-
-tab1, tab2= st.tabs(["Tables", "Solution"])
-
-with tab1:
-    st.write("table: food")
-    st.dataframe(food)
-    st.write("table: price")
-    st.dataframe(price)
-    st.write("table: expected")
-    st.dataframe(data_result)
 with tab2:
-    st.write("Réponse:")
-    st.code(sql_result,language='sql')
-    st.dataframe(data_result)
+    # Utilisateur réponse
+    if sql_query:
+        st.write("Votre table:")
+        try:
+            user_answer_table = con.execute(sql_query).df()
+            st.dataframe(user_answer_table)
+        except Exception as e:
+            ERROR_MESSAGE = str(e)
+            st.error(ERROR_MESSAGE)
+        try:
+            user_answer_table_sorted = (
+                user_answer_table.sort_index(axis=1)
+                .sort_values(by=user_answer_table.columns[1])
+                .reset_index(drop=True)
+            )
+            answer_table_sorted = (
+                answer_table.sort_index(axis=1)
+                .sort_values(by=answer_table.columns[1])
+                .reset_index(drop=True)
+            )
+            if user_answer_table_sorted.equals(answer_table_sorted):
+                st.success("Correct ! La réponse est bien.")
+            else:
+                st.error("C'est Faux.")
+        except Exception as e:
+            st.error("Please enter a SQL query.")
+with tab3:
+    try:
+        st.code(sql_solution, language="sql")
+    except Exception as e:
+        print()
 
+
+# st.markdown(
+#     "Récupère le nom des plats et leur prix en utilisant "
+#     "une jointure entre les tables `food` et `price`"
+# )
